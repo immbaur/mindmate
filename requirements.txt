@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+openai
+python-dotenv
+tiktoken
+langchain
+chromadb
