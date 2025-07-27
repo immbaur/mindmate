@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from openai import OpenAI
 from tools.news import get_latest_news
+from fastapi.middleware.cors import CORSMiddleware
 # import memory  # optional conversation store
 
 # ── logging setup ───────────────────────────────────────────────────────────
@@ -18,6 +19,14 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 client = OpenAI()
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or ["http://localhost:3000"] for stricter control
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ── OpenAI function tool definition ─────────────────────────────────────────
 # This schema enables the model to call external functions like get_latest_news()
@@ -81,10 +90,10 @@ def chat(req: ChatRequest):
     # ── Handle model output ──────────────────────────────────────────────────
     output = model_response.output[0]
 
-    if output.type == "text":
+    if output.type == "message":
         # Model returned a direct answer, return it as-is
         logger.info("Received direct text response from model.")
-        return ChatResponse(reply=output.text)
+        return ChatResponse(reply=output.content[0].text)
 
     elif output.type == "function_call":
         # Model requested a tool to be called

@@ -1,0 +1,20 @@
+{
+  "name": "mindmate-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Mindmate AI assistant",
+  "main": "index.html",
+  "scripts": {
+    "serve": "python -m http.server 3000",
+    "dev": "npm run serve"
+  },
+  "keywords": [
+    "ai",
+    "chatbot",
+    "frontend",
+    "javascript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {}
+}
