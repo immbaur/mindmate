@@ -5,3 +5,9 @@ python-dotenv
 tiktoken
 langchain
 chromadb
+imapclient
+pyzmail36
+beautifulsoup4
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib

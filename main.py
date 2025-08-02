@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from openai import OpenAI
 from tools.news import get_latest_news
+from tools.morningbrew import get_latest_morningbrew_news
 from fastapi.middleware.cors import CORSMiddleware
 # import memory  # optional conversation store
 
@@ -28,6 +29,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Tool function dispatch map ──────────────────────────────────────────────
+def get_morningbrew_news(num_articles: int = 10, day: str = None) -> list[dict]:
+    if day:
+        raise NotImplementedError("Fetching by date not yet implemented.")
+    return get_latest_morningbrew_news()[:num_articles]
+
+TOOL_FUNCTIONS = {
+    "get_latest_news": get_latest_news,
+    "get_morningbrew_news": get_morningbrew_news,
+}
+
 # ── OpenAI function tool definition ─────────────────────────────────────────
 # This schema enables the model to call external functions like get_latest_news()
 tools = [
@@ -49,7 +61,28 @@ tools = [
                 }
             },
             "required": ["topic"],
-            "additionalProperties": False  # strict schema enforcement
+            "additionalProperties": False
+        }
+    },
+    {
+        "type": "function",
+        "name": "get_morningbrew_news",
+        "description": "Fetch articles from the Morning Brew newsletter.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "num_articles": {
+                    "type": "integer",
+                    "description": "How many stories to return from the newsletter",
+                    "default": 10
+                },
+                "day": {
+                    "type": "string",
+                    "description": "Date of the newsletter in YYYY-MM-DD format. Defaults to latest if not specified."
+                }
+            },
+            "required": [],
+            "additionalProperties": False
         }
     }
 ]
@@ -107,13 +140,17 @@ def chat(req: ChatRequest):
             logger.error(f"Failed to parse function arguments: {e}")
             raise HTTPException(status_code=500, detail=f"bad tool args: {e}")
 
-        # Call the actual backend tool
+        # Call the appropriate backend tool based on model response
         try:
-            tool_result = get_latest_news(**function_args)
-            logger.info("Tool executed successfully.")
+            if output.name not in TOOL_FUNCTIONS:
+                raise ValueError(f"Tool '{output.name}' is not registered.")
+
+            tool_fn = TOOL_FUNCTIONS[output.name]
+            tool_result = tool_fn(**function_args)
+            logger.info(f"Tool '{output.name}' executed successfully.")
         except Exception as e:
-            logger.exception("Tool execution failed.")
-            raise HTTPException(status_code=500, detail=f"news fetch failed: {e}")
+            logger.exception(f"Tool '{output.name}' execution failed.")
+            raise HTTPException(status_code=500, detail=f"{output.name} failed: {e}")
 
         # Update the history with the tool response for a second model call
         history.extend([
